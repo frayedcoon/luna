@@ -3,8 +3,12 @@
 #include "common/log.h"
 #include "kernel/syscall.h"
 #include "lib/parser.h"
+#include "fs/fs.h"
 
-#define TERMINAL_INPUT_BUFFER_SIZE 64
+#define TERMINAL_INPUT_BUFFER_SIZE  0x40
+
+#define PROMPT_PREFIX  "luna "
+#define PROMPT_POSTFIX ">"
 
 #define foreach_cmd(_cmd) for(terminal_command_context *_cmd = &_terminal_start; _cmd < &_terminal_end; _cmd++)
 
@@ -25,7 +29,9 @@ static usart_iface *stdio = NULL;
  * @brief      prepare terminal before input
  */
 static void terminal_new_cmd(void) {
-    stdio->puts(stdio, "> ");
+    stdio->puts(stdio, PROMPT_PREFIX);
+    stdio->puts(stdio, fs_current_path_get());
+    stdio->puts(stdio, PROMPT_POSTFIX);
 }
 
 /**
@@ -81,4 +87,4 @@ static void terminal_loop(void) {
     }
 }
 
-KERNEL_SRV(terminal, terminal_loop, 128, 1);
+KERNEL_SRV(terminal, terminal_loop, 512, 1);

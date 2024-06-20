@@ -7,6 +7,7 @@
 #include "kernel/thread.h"
 #include "app/terminal.h"
 #include "common/log.h"
+#include "target/cfg.h"
 
 /**
  * @brief      basic threads initialization and user mode switch
@@ -26,7 +27,7 @@ int init_threading(void) {
 }
 
 void init_subsystems(void) {
-    systick_init();
+    systick_init(CLOCK_FREQ);
     clock_init();
     heap_init();
     gpio_init();

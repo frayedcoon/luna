@@ -1,5 +1,3 @@
-
-
 include local.mk
 include scripts/make/init.mk
 
@@ -8,12 +6,10 @@ include scripts/make/init.mk
 .PHONY : all
 all : $(PROJECT_BINARY)
 
-$(PROJECT_BINARY) : load_modules
-	$(foreach src, $(GLOBAL_SRCS), $(shell $(CC) $(CC_FLAGS) $(GLOBAL_INC) -c $(src) -o $(addprefix $(BUILD_DIR)/$(firstword \
-        $(subst /, ,$(src)))/,$(notdir $(src:.c=.o))) || rm -f $(addprefix $(BUILD_DIR)/$(firstword \
-            $(subst /, ,$(src)))/,$(notdir $(src:.c=.o)))))
-	$(LD) $(GLOBAL_OBJS) $(LD_FLAGS) -o $(PROJECT_ELF)
-	$(OC) -O binary $(PROJECT_ELF) $(PROJECT_BINARY)
+$(PROJECT_BINARY) : $(GLOBAL_OBJS)
+	@echo Linking $(PROJECT_BINARY)
+	@$(LD) $(GLOBAL_OBJS) $(LD_FLAGS) -o $(PROJECT_ELF)
+	@$(OC) -O binary $(PROJECT_ELF) $(PROJECT_BINARY)
 
 .PHONY : test
 test : flush
@@ -32,6 +28,3 @@ dump : $(PROJECT_BINARY)
 	$(OD) -d $(PROJECT_ELF) > $(PROJECT_DUMP)
 	less $(PROJECT_DUMP)
 
-.PHONY : pre-build
-pre-build :
-	@mkdir -p $(BUILD_DIR)

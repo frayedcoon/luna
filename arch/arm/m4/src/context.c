@@ -15,7 +15,7 @@ uint32_t      idler_frame[sizeof(sw_context_frame) / CORE_STACK_ALIGNMENT] =
               {0, 0, 0, 0,
                0, 0, 0, 0};
 
-core_context  ilder_core_context = {
+core_context  idler_core_context = {
     .sp           = &idler_stack[0],
     .sp_base      = &idler_stack[0],
     .sw_frame     = &idler_frame[0],
@@ -32,8 +32,8 @@ core_context dummy_core_context = {
     .sw_frame     = &dummy_frame[0],
 };
 
-core_context *core_context_cur                          = &ilder_core_context;
-core_context *core_context_new                          = &ilder_core_context;
+core_context *core_context_cur                          = &idler_core_context;
+core_context *core_context_new                          = &idler_core_context;
 
 void idler_task(void) {
     while (1) {

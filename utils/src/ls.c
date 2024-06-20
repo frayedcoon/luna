@@ -10,36 +10,40 @@ static int ls_cmd_handler(list_ifc *args) {
         return -1;
     }
 
-    int ret = 0;
-
-    uint8_t io_buffer[IO_BUF_SIZE];
-
-    const void *conn = connect(VFS_PORT, io_buffer, IO_BUF_SIZE);
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -1;
+    const char *curr_path = strdup(fs_current_path_get());
+    if (!curr_path) {
+        return -2;
     }
 
-    char buf[IO_BUF_SIZE];
+    char path_buf[VFS_BUF_MAX];
 
-    ret = write(conn, VFS_LS_REQ, strsize(VFS_LS_REQ));
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs: %d", ret);
-        goto closure;
-    }
+    int fd = fopen(curr_path);
+    if (fd > 0) {
+        file_stat stat;
+        int ret = fstat(fd, &stat);
+        if (!ret) {
+            if (stat.type == F_TYPE_DIR) {
+                ret = fread(fd, path_buf, VFS_BUF_MAX - 1);
 
-    ret = timed_read(conn, buf, IO_BUF_SIZE - 1, 100);
-    if (ret <= 0) {
-        LOG_ERR("failed to read vfs reply: %d", ret);
-        goto closure;
-    }
+                uint32_t displacement = 0;
+                while (ret > 0) {
+                    dir_entry *entry = (void *) (path_buf + displacement);
+                    printf("%s%s\n", entry->name, entry->type == F_TYPE_DIR ? "/" : "");
 
-    printf("%s\n", buf);
+                    displacement += sizeof(dir_entry) + strsize(entry->name);
 
-    closure:
-    ret = close(conn);
-    if (ret) {
-        LOG_ERR("failed to close vfs connection: %d", ret);
+                    ret -= sizeof(dir_entry) + strsize(entry->name);
+                }
+                fclose(fd);
+            } else {
+                printf("Not a dir\n");
+            }
+        } else {
+            LOG_ERR("Failed to read file data");
+        }
+
+    } else {
+        printf("Not found\n");
     }
 
     return 0;

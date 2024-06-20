@@ -1,7 +1,9 @@
 #include "platform/kernel_entry.h"
+#include "platform/handler.h"
 #include "arch/nvic.h"
 #include "arch/handler.h"
 #include "arch/svc.h"
+#include "kernel/kernel.h"
 
 const void * Vectors[] __attribute__((section(".vectors"))) = {
     (void *) &STACK_END, /* Initial MSP value */
@@ -28,7 +30,7 @@ const void * Vectors[] __attribute__((section(".vectors"))) = {
     default_handler,     /* RCC */
     default_handler,     /* EXTI0 */
     default_handler,     /* EXTI1 */
-    default_handler,     /* EXTI2 and TSC */
+    default_handler,     /* EXTI2 */
     default_handler,     /* EXTI3 */
     default_handler,     /* EXTI4 */
     default_handler,     /* DMA_CH1 */
@@ -38,28 +40,28 @@ const void * Vectors[] __attribute__((section(".vectors"))) = {
     default_handler,     /* DMA_CH5 */
     default_handler,     /* DMA_CH6 */
     default_handler,     /* DMA_CH7 */
-    default_handler,     /* ADC1_2 */
-    default_handler,     /* USB_HP/CAN_TX */
-    default_handler,     /* USB_LP/CAN_RX0 */
-    default_handler,     /* CAN_RX1 */
+    default_handler,     /* ADC1_2_3 */
+    default_handler,     /* CAN1_TX */
+    default_handler,     /* CAN1_RX0 */
+    default_handler,     /* CAN1_RX1 */
     default_handler,     /* CAN_SCE */
     default_handler,     /* EXTI9_5 */
-    default_handler,     /* TIM1_BRK/TIM15 */
-    default_handler,     /* TIM1_UP/TIM16 */
-    default_handler,     /* TIM1_TRG/TIM17 */
+    default_handler,     /* TIM1_BRK/TIM9 */
+    default_handler,     /* TIM1_UP/TIM10 */
+    default_handler,     /* TIM1_TRG/TIM11 */
     default_handler,     /* TIM1_CC */
     default_handler,     /* TIM2 */
     default_handler,     /* TIM3 */
     default_handler,     /* TIM4 */
-    default_handler,     /* I2C1_EV_EXTI23 */
+    default_handler,     /* I2C1_EV */
     default_handler,     /* I2C1_ER */
-    default_handler,     /* I2C2_EV_EXTI24 */
+    default_handler,     /* I2C2_EV */
     default_handler,     /* I2C2_ER */
     default_handler,     /* SPI1 */
     default_handler,     /* SPI2 */
-    default_handler,     /* USART1_EXTI25 */
-    usart2_handler,      /* USART2_EXTI26 */
-    default_handler,     /* USART3_EXTI28 */
+    default_handler,     /* USART1 */
+    usart2_handler,      /* USART2 */
+    default_handler,     /* USART3 */
     default_handler,     /* EXTI15_10 */
     default_handler,     /* RTCAlarm */
     default_handler,     /* USB_WKUP */

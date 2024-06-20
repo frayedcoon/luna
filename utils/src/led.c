@@ -7,8 +7,6 @@
 #define LED_CMD_ENABLE  "enable"
 #define LED_CMD_DISABLE "disable"
 
-#define IO_BUF_SIZE 16
-
 static int led_cmd_handler(list_ifc *args) {
     if (args->size(args) != 2) {
         return -1;
@@ -16,9 +14,7 @@ static int led_cmd_handler(list_ifc *args) {
 
     const list_node *node = args->get_front(args)->nxt;
 
-    uint8_t io_buffer[IO_BUF_SIZE];
-
-    const void *conn =  connect(LED_PORT, io_buffer, IO_BUF_SIZE);
+    const void *conn =  connect(LED_PORT, 0);
     if (!conn) {
         LOG_ERR("Failed to connect to led socket\n");
         return -1;

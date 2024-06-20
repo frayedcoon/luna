@@ -200,13 +200,12 @@ int socket(uint8_t port) {
 }
 
 const
-void *connect(uint8_t port, uint8_t *buffer, uint32_t buffer_size) {
-    const volatile void * reply = (void *) buffer;
+void *connect(uint8_t port, uint32_t buffer_size) {
+    void * volatile reply = connect;
 
     socket_connect_request req = {
         .result                = -21,
         .port                  = port,
-        .buffer                = buffer,
         .buffer_size           = buffer_size,
         .reply_ptr             = (const void **) &reply,
     };
@@ -216,7 +215,9 @@ void *connect(uint8_t port, uint8_t *buffer, uint32_t buffer_size) {
         return NULL;
     }
 
-    return expect_answer((volatile void **) &reply, buffer, CONNECT_TIMEOUT_MS);
+    void *ret = expect_answer(&reply, connect, CONNECT_TIMEOUT_MS);
+
+    return ret;
 }
 
 const
@@ -232,13 +233,13 @@ void *listen(uint8_t port) {
 }
 
 const
-void *accept(uint8_t port, const void *client, uint8_t * buffer, uint32_t buffer_size) {
+void *accept(uint8_t port, const void *client, uint32_t buffer_size) {
     socket_reply_request req = {
         .conn                = NULL,
         .port                = port,
         .client              = client,
-        .buffer              = buffer,
         .buffer_size         = buffer_size,
+        .accept              = 1,
     };
 
     sv_call(SVC_SOCK_REPLY, &req);
@@ -252,8 +253,8 @@ void *decline(uint8_t port, const void *client) {
         .conn                = NULL,
         .port                = port,
         .client              = client,
-        .buffer              = NULL,
         .buffer_size         = 0,
+        .accept              = 0,
     };
 
     sv_call(SVC_SOCK_REPLY, &req);

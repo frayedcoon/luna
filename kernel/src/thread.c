@@ -142,6 +142,9 @@ int scheduler_schedule(core_context **old_ctx,
         nxt_ctx->data->wakeup = clock_get();
         nxt_ctx->data->state.flags |=  THREAD_RUNNING;
         *new_ctx = &nxt_ctx->data->context;
+    } else {
+        //! assuming idler will be scheduled next
+        sched_ctx.last_thread = NULL;
     }
 
     return !nxt_ctx;

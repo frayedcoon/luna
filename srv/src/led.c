@@ -25,10 +25,6 @@ static int         led_active     = 1;
 
 static uint32_t    led_interval   = 250;
 
-static char io_buffer[LED_SOCK_BUFFER_SIZE];
-
-static uint8_t connections_buffer[LED_CONNECTION_BUFFER_SIZE][LED_CONNECTIONS_MAX];
-
 /**
  * @brief      initializes GPIO pin connected to LED
  */
@@ -47,27 +43,16 @@ void led_loop(void) {
     int ret = socket(LED_PORT);
     ASSERT(!ret);
 
-    uint32_t busy_connections = 0;
-
     while (1) {
         const void *client = listen(LED_PORT);
         if (client) {
-            unsigned index = 0;
-            if (busy_connections) {
-                index = __builtin_ffs(~busy_connections);
-                if (!index) {
-                    decline(LED_PORT, client);
-                    continue;
-                }
-                index--;
-            }
-            busy_connections |= (1 << index);
-
-        const void * conn = accept(LED_PORT, client, &connections_buffer[0][index], LED_CONNECTION_BUFFER_SIZE);
+            const void * conn = accept(LED_PORT, client, 0);
             if (!conn) {
                 LOG_DBG("Failed to accept sock connection");
             }
         }
+
+        char io_buffer[LED_SOCK_BUFFER_SIZE];
 
         const void *conn = select(LED_PORT);
         if (conn) {

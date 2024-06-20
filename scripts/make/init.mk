@@ -3,16 +3,6 @@ PROJECT                 := luna
 SCRIPT_DIR              := scripts
 BUILD_DIR               := build
 
-USER_VARIABLES          += CROSS_TOOL
-USER_VARIABLES          += TARGET
-USER_VARIABLES          += SERIAL_DEVICE
-USER_VARIABLES          += SERIAL_COMMUNICATION
-
-.PHONY : variables
-variables : pre-build
-	$(foreach var, $(USER_VARIABLES), \
-        $(if $(value $(var)), , $(error "Undefined $(var), please provide it in local.mk")))
-
 CC                       := $(CROSS_TOOL)gcc
 AS                       := $(CROSS_TOOL)as
 LD                       := $(CROSS_TOOL)ld
@@ -32,7 +22,6 @@ GLOBAL_OBJS              :=
 GLOBAL_INC               := -I.
 
 include $(TARGET_DIR)/target.mk
-
 include $(SCRIPT_DIR)/make/common.mk
 
 LD_SCRIPT               := $(SCRIPT_DIR)/ld/$(TARGET).ld
@@ -43,3 +32,8 @@ CC_FLAGS                := -mcpu=cortex-$(CORE) -mthumb -g -ffreestanding \
                            -mlittle-endian
 LD_FLAGS                := -T $(LD_SCRIPT) --cref \
                            -Map $(PROJECT_MAP)
+
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo Compiling $<
+	@$(CC) $(CC_FLAGS) $(GLOBAL_INC) -c $< -o $@

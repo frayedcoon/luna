@@ -20,68 +20,10 @@ extern core_context  *core_context_new;
 
 extern int context_switch_scheduled;
 
-void usart2_handler(void) {
-    extern usart_iface *usart_iface_2;
-    if (usart_iface_2 && usart_iface_2->buffer_consume(usart_iface_2)) {
-        thread_signal(usart_iface_2);
-        sv_schedule_routine(NULL);
-    }
-}
-
-void systick_handler(void) {
-    sv_schedule_routine(NULL);
-
-    systick_msec++;
-
-    ted_dispatch();
-}
-
-void pend_sv_handler(void) {
-    register uint32_t *old_context asm ("r0") =
-        core_context_cur->sw_frame;
-    register void *old_stack asm ("r1") =
-        core_context_cur->sp;
-    register int *need_switch asm ("r2") = &context_switch_scheduled;
-
-    asm volatile(
-        "mov r3, #0                          \n\t"
-        "str r3, [r2]                        \n\t"
-        //! store current sofware context
-        "stm    r0!, {r4 - r11}              \n\t"
-        //! store current stack pointer
-        "mrs    r1, psp                      \n\t"
-    );
-
-    core_context_cur->sp = (void*) old_stack;
-
-    (void) old_context;
-    (void) old_stack;
-    (void) need_switch;
-
-    register uint32_t *new_context asm ("r0") =
-        core_context_new->sw_frame;
-    register void *new_stack asm ("r1") =
-        core_context_new->sp;
-
-    asm volatile(
-        //! restore scheduled sofware context
-        "ldm      r0!, {r4 - r11}            \n\t"
-        //! restore scheduled stack pointer
-        "msr      psp, r1                    \n\t"
-    );
-
-    (void) new_context;
-    (void) new_stack;
-}
-
-
-void default_handler(void) {
-    printf("unhandled interrupt!!!");
-    while (1);
-}
-
-void h_fault_handler(uint32_t stack[]){
+__attribute__((used))
+static void print_fault(uint32_t * stack, uint32_t exc) {
     printf("CPU Hard Fault.\n");
+    printf("EXC_RETURN     : 0x%08x\n", exc);
     printf("SCB->HFSR      : 0x%08x\n", HFSR);
     printf("SCB->CFSR      : 0x%08x\n", CFSR);
     printf("Register Dump  :\n");
@@ -130,4 +72,65 @@ void h_fault_handler(uint32_t stack[]){
 
     asm volatile("bkpt #00\n\t");
     while (1);
+}
+
+void systick_handler(void) {
+    sv_schedule_routine(NULL);
+
+    systick_msec++;
+}
+
+void pend_sv_handler(void) {
+    register uint32_t *old_context asm ("r0") =
+        core_context_cur->sw_frame;
+    register void *old_stack asm ("r1") =
+        core_context_cur->sp;
+    register int *need_switch asm ("r2") = &context_switch_scheduled;
+
+    asm volatile(
+        "mov r3, #0                          \n\t"
+        "str r3, [r2]                        \n\t"
+        //! store current sofware context
+        "stm    r0!, {r4 - r11}              \n\t"
+        //! store current stack pointer
+        "mrs    r1, psp                      \n\t"
+    );
+
+    core_context_cur->sp = (void*) old_stack;
+
+    (void) old_context;
+    (void) old_stack;
+    (void) need_switch;
+
+    register uint32_t *new_context asm ("r0") =
+        core_context_new->sw_frame;
+    register void *new_stack asm ("r1") =
+        core_context_new->sp;
+
+    asm volatile(
+        //! restore scheduled sofware context
+        "ldm      r0!, {r4 - r11}            \n\t"
+        //! restore scheduled stack pointer
+        "msr      psp, r1                    \n\t"
+    );
+
+    (void) new_context;
+    (void) new_stack;
+}
+
+
+void default_handler(void) {
+    printf("unhandled interrupt!!!");
+    while (1);
+}
+
+void h_fault_handler(void) {
+    asm volatile(
+        "tst    lr, #0b0100          \n\t"
+        "ite    eq                   \n\t"
+        "mrseq  r0, msp              \n\t"
+        "mrsne  r0, psp              \n\t"
+        "mov    r1, lr               \n\t"
+        "b      print_fault          \n\t"
+    );
 }

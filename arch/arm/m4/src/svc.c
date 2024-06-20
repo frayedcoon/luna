@@ -11,7 +11,7 @@ extern core_context  *core_context_new;
 
 extern scheduler_ifc *scheduler;
 
-extern core_context   ilder_core_context;
+extern core_context   idler_core_context;
 extern core_context   dummy_core_context;
 
 volatile int context_switch_scheduled = 0;
@@ -22,7 +22,7 @@ volatile int context_switch_scheduled = 0;
 static
 void sv_user_mode(void *arg) {
     (void) arg;
-    register void *user_stack asm ("r0") = ilder_core_context.sp;
+    register void *user_stack asm ("r0") = idler_core_context.sp;
     asm volatile (
         //! update PSP from current user thread's SP
         "msr      psp, r0                    \n\t"
@@ -68,11 +68,13 @@ void sv_schedule_routine(void *arg) {
     core_context *old_ctx = NULL;
     core_context *new_ctx = NULL;
 
-    if (!context_switch_scheduled && scheduler->schedule(&old_ctx, &new_ctx) == 0) {
+    if (!context_switch_scheduled) {
         context_switch_scheduled = 1;
 
+        scheduler->schedule(&old_ctx, &new_ctx);
+
         core_context_cur = old_ctx ? old_ctx : &dummy_core_context;
-        core_context_new = new_ctx ? new_ctx : &ilder_core_context;
+        core_context_new = new_ctx ? new_ctx : &idler_core_context;
 
         pend_sv_call();
     }
@@ -221,7 +223,7 @@ void sv_sock_conn(void *arg) {
         return;
     }
 
-    req->result = socket_connect(req->port, thread_get(NULL), req->reply_ptr, req->buffer, req->buffer_size);
+    req->result = socket_connect(req->port, thread_get(NULL), req->reply_ptr, req->buffer_size);
 }
 
 static
@@ -241,7 +243,7 @@ void sv_sock_reply(void *arg) {
         return;
     }
 
-    req->conn = socket_reply(req->port, thread_get(NULL), req->client, req->buffer, req->buffer_size);
+    req->conn = socket_reply(req->port, thread_get(NULL), req->client, req->buffer_size, req->accept);
 }
 
 static

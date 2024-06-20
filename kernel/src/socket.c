@@ -5,6 +5,8 @@
 #include "lib/string.h"
 #include "common/log.h"
 
+#define DEFAULT_BUFFER_SIZE 64
+
 #define CONNECTION_ESTABLISHED(conn_context) ((conn_context)->client_buffer.buffer)
 
 typedef struct socket_io_buffer_t {
@@ -104,8 +106,9 @@ void *sock_find_conn(const void *dest, int find_node) {
 
 
 static
-socket_connection *socket_init_connection(socket_ctx *ctx, const void *client, const void **reply_ptr, uint8_t * buffer,
+socket_connection *socket_init_connection(socket_ctx *ctx, const void *client, const void **reply_ptr,
     uint32_t buffer_size) {
+    uint8_t           *buf  = NULL;
     socket_connection *conn = cell_alloc(sizeof(socket_connection));
     if (!conn) {
         goto error;
@@ -113,9 +116,18 @@ socket_connection *socket_init_connection(socket_ctx *ctx, const void *client, c
 
     memset(conn, 0, sizeof(socket_connection));
 
-    conn->owner_buffer.rd_ptr      = buffer;
-    conn->owner_buffer.wr_ptr      = buffer;
-    conn->owner_buffer.buffer      = buffer;
+    if (!buffer_size) {
+        buffer_size = DEFAULT_BUFFER_SIZE;
+    }
+
+    buf = cell_alloc(buffer_size);
+    if (!buf) {
+        goto error;
+    }
+
+    conn->owner_buffer.rd_ptr      = buf;
+    conn->owner_buffer.wr_ptr      = buf;
+    conn->owner_buffer.buffer      = buf;
     conn->owner_buffer.buffer_size = buffer_size;
 
     if (!ctx->connections->insert_after(ctx->connections, NULL, conn)) {
@@ -131,11 +143,28 @@ socket_connection *socket_init_connection(socket_ctx *ctx, const void *client, c
 
     error:
 
+    if (buf) {
+        cell_free(buf);
+    }
+
     if (conn) {
         cell_free(conn);
     }
 
     return NULL;
+}
+
+void sock_conn_dstor(void *ptr) {
+    socket_connection *conn = ptr;
+    if (conn) {
+        if (conn->owner_buffer.buffer) {
+            cell_free(conn->owner_buffer.buffer);
+        }
+        if (conn->client_buffer.buffer) {
+            cell_free(conn->client_buffer.buffer);
+        }
+        cell_free(conn);
+    }
 }
 
 int socket_create(const void *owner, uint8_t port) {
@@ -169,7 +198,7 @@ int socket_create(const void *owner, uint8_t port) {
 
     if (ctx) {
         if (ctx->connections) {
-            ctx->connections->destroy(ctx->connections, cell_free);
+            ctx->connections->destroy(ctx->connections, sock_conn_dstor);
         }
 
         cell_free(ctx);
@@ -178,7 +207,7 @@ int socket_create(const void *owner, uint8_t port) {
     return -2;
 }
 
-int socket_connect(uint8_t port, const void *client, const void **reply_ptr, uint8_t *buffer, uint32_t buffer_size) {
+int socket_connect(uint8_t port, const void *client, const void **reply_ptr, uint32_t buffer_size) {
     if (sockets_init()) {
         return -1;
     }
@@ -188,14 +217,9 @@ int socket_connect(uint8_t port, const void *client, const void **reply_ptr, uin
         return -2;
     }
 
-    socket_connection *conn = socket_init_connection(ctx, client, reply_ptr, buffer, buffer_size);
+    socket_connection *conn = socket_init_connection(ctx, client, reply_ptr, buffer_size);
     if (!conn) {
         return -3;
-    }
-
-    if (!ctx->connections->insert_after(ctx->connections, NULL, conn)) {
-        cell_free(conn);
-        return -4;
     }
 
     return 0;
@@ -229,7 +253,7 @@ void *socket_listen(uint8_t port, const void *owner) {
 }
 
 const
-void *socket_reply(uint8_t port, const void * owner, const void *client, uint8_t *buffer, uint32_t buffer_size) {
+void *socket_reply(uint8_t port, const void *owner, const void *client, uint32_t buffer_size, int accept) {
     if (sockets_init()) {
         return NULL;
     }
@@ -252,10 +276,17 @@ void *socket_reply(uint8_t port, const void * owner, const void *client, uint8_t
         //! unaccepted connection
         if (!CONNECTION_ESTABLISHED(conn)) {
              if (conn->client == client) {
-                if (buffer) {
-                    conn->client_buffer.rd_ptr      = buffer;
-                    conn->client_buffer.wr_ptr      = buffer;
-                    conn->client_buffer.buffer      = buffer;
+                if (accept) {
+                    if (!buffer_size) {
+                        buffer_size = DEFAULT_BUFFER_SIZE;
+                    }
+                    uint8_t *buf = cell_alloc(buffer_size);
+                    if (!buf) {
+                        return NULL;
+                    }
+                    conn->client_buffer.rd_ptr      = buf;
+                    conn->client_buffer.wr_ptr      = buf;
+                    conn->client_buffer.buffer      = buf;
                     conn->client_buffer.buffer_size = buffer_size;
 
                     *conn->reply_ptr = conn;
@@ -264,7 +295,7 @@ void *socket_reply(uint8_t port, const void * owner, const void *client, uint8_t
                 } else {
                     //! declined
                     *conn->reply_ptr = NULL;
-                    ctx->connections->delete(ctx->connections, node, cell_free);
+                    ctx->connections->delete(ctx->connections, node, sock_conn_dstor);
                 }
 
                 return NULL;
@@ -343,9 +374,8 @@ int socket_write(const void * dest, const void *owner, char *buffer, uint32_t bu
         return -4;
     }
 
-    //! TODO: truncate?
     if (buf_ctx->busy_count + buffer_size > buf_ctx->buffer_size) {
-        return -5;
+        buffer_size = buf_ctx->buffer_size - buf_ctx->busy_count;
     }
 
     uint32_t count = 0;
@@ -420,9 +450,9 @@ void *socket_get_peer(const void *dest, const void *source) {
 
     socket_connection *conn = sock_find_conn(dest, 0);
     if (conn) {
-        // if (!CONNECTION_ESTABLISHED(conn)) {
-        //     return NULL;
-        // }
+        if (!CONNECTION_ESTABLISHED(conn)) {
+            return NULL;
+        }
         socket_ctx *sock = conn->sock_ref;
 
         if (source == conn->client) {
@@ -449,7 +479,7 @@ int socket_close(const void *dest, const void *source) {
             return -2;
         }
 
-        sock->connections->destroy(sock->connections, cell_free);
+        sock->connections->destroy(sock->connections, sock_conn_dstor);
 
         cell_free(sock);
 
@@ -466,7 +496,7 @@ int socket_close(const void *dest, const void *source) {
                 return -3;
             }
 
-            sock->connections->delete(sock->connections, conn_node, cell_free);
+            sock->connections->delete(sock->connections, conn_node, sock_conn_dstor);
 
             return 0;
         }

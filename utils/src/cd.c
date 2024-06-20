@@ -2,52 +2,35 @@
 #include "srv/vfs.h"
 #include "common/sys.h"
 #include "common/log.h"
-
-#define IO_BUF_SIZE 32
+#include "fs/fs.h"
 
 static int cd_cmd_handler(list_ifc *args) {
     if (args->size(args) != 2) {
         return -1;
     }
 
-    const list_node *arg = args->get_back(args);
-
-    int ret = 0;
-
-    uint8_t io_buffer[IO_BUF_SIZE];
-
-    const void *conn = connect(VFS_PORT, io_buffer, IO_BUF_SIZE);
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -1;
+    char *path = args->get_back(args)->ptr;
+    if (strsize(path) > VFS_BUF_MAX - strlen(fs_current_path_get())) {
+        return -2;
     }
 
-    char buf[IO_BUF_SIZE];
+    char path_buf[VFS_BUF_MAX];
+    snprintf(path_buf, VFS_BUF_MAX, "%s/%s", fs_current_path_get(), path);
 
-    int len = snprintf(buf, IO_BUF_SIZE - 1, "%s %s", VFS_CD_REQ, arg->ptr);
-    if (len < 0 || len > IO_BUF_SIZE - 1) {
-        LOG_ERR("failed to request vfs");
-        goto closure;
-    }
+    normalize_path(path_buf);
 
-    ret = write(conn, buf, len + 1);
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs");
-        goto closure;
-    }
-
-    ret = timed_read(conn, buf, IO_BUF_SIZE - 1, 100);
-    if (ret <= 0) {
-        LOG_ERR("failed to read vfs reply");
-        goto closure;
-    }
-
-    printf("%s\n", buf);
-
-    closure:
-    ret = close(conn);
-    if (ret) {
-        LOG_ERR("failed to close vfs connection: %d", ret);
+    int fd = fopen(path_buf);
+    if (fd <= 0) {
+        printf("Not found.\n");
+    } else {
+        file_stat stat;
+        int ret = fstat(fd, &stat);
+        if (!ret && stat.type == F_TYPE_DIR) {
+            fs_current_path_set(path_buf);
+        } else {
+            printf("Not a dir.\n");
+        }
+        fclose(fd);
     }
 
     return 0;
