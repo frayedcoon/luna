@@ -8,6 +8,8 @@ self-educational purpose.
 - stm32f3:
     - `NUCLEO STM32f303RE`
     - `NUCLEO STM32f303K8`
+- stm32f4:
+    - `NUCLEO STM32f401RE`
 
 ## Tools
 
@@ -28,17 +30,17 @@ for writing embedded flash memory
 
 Just call `make`.
 
-The kernel binary `luna.bin` for target `BOARD=nucleo-stm32f303K8`
+The kernel binary `luna.bin` for target `TARGET=nucleo-stm32f303K8`
 (default target) will be generated under `build/` directory.
 
-If you want to build kernel for another platform, you should specify `BOARD`
+If you want to build kernel for another platform, you should specify `TARGET`
 variable for `make`.
 
 Supported boards could be found inside `board/` folder.
 
 Example:
 ```
-    make BOARD=nucleo-stm32f303RE
+    make TARGET=nucleo-stm32f401RE
 ```
 
 ## Build targets
@@ -64,13 +66,11 @@ NOTE: non-default target board SHOULD be specified every call to `make`
 
 ## Build options
 
-All configurable build options can be found in `user_vars.mk`
-
 - CROSS_TOOL :
 host cross-compiler prefix
 
 - SERIAL_DEVICE :
 debug tty device
 
-- BOARD :
+- TARGET :
 target board
