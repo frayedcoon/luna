@@ -40,7 +40,7 @@ static list_ifc *open_fd = NULL;
 static int current_fd = 0;
 
 static const spi_config cfg = {
-    .prescaler = SPI_PRESCALER_4,
+    .prescaler = SPI_PRESCALER_2,
     .mode      = SPI_MODE_MASTER,
     .cpol      = 0,
     .cpha      = 0,
@@ -319,44 +319,31 @@ int fstat(int fd, file_stat *stat) {
         return -1;
     }
 
-    char cmd_buf[sizeof(vfs_command) + sizeof(vfs_fd_req)];
-    char reply_buf[sizeof(vfs_reply) + sizeof(file_stat)];
-
+    int ret = -1;
 
     const void *conn = connect(VFS_PORT, sizeof(vfs_reply) + sizeof(file_stat));
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -2;
+    if (conn) {
+        vfs_command cmd = {
+            .command = VFS_STAT,
+        };
+        vfs_fd_req req = {
+            .fd = fd,
+        };
+
+        if (write(conn, &cmd, sizeof(vfs_command)) == sizeof(vfs_command) &&
+            write(conn, &req, sizeof(vfs_fd_req)) == sizeof(vfs_fd_req)) {
+
+            vfs_reply reply;
+            if (timed_read(conn, &reply, sizeof(vfs_reply), 100) == sizeof(vfs_reply) &&
+                timed_read(conn, stat, sizeof(file_stat), 100) == sizeof(file_stat)) {
+                ret = reply.ret;
+            }
+        }
+
+        close(conn);
     }
 
-    vfs_command *cmd   = (void *) cmd_buf;
-    vfs_reply   *reply = (void *) reply_buf;
-
-    cmd->command = VFS_STAT;
-
-    vfs_fd_req *req = (void *) (cmd + 1);
-    req->fd         = fd;
-
-    int ret = write(conn, cmd_buf, sizeof(vfs_command) + sizeof(vfs_fd_req));
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs");
-        goto closure;
-    }
-
-    ret = timed_read(conn, reply_buf, sizeof(vfs_reply) + sizeof(file_stat), 100);
-    if (ret <= 0) {
-        LOG_ERR("failed to read vfs reply");
-        goto closure;
-    }
-
-    if (ret == sizeof(vfs_reply) + sizeof(file_stat)) {
-        memcpy(stat, reply->buf, sizeof(file_stat));
-    }
-
-    closure:
-    close(conn);
-
-    return (ret == sizeof(vfs_reply) + sizeof(file_stat)) ? reply->ret : -3;
+    return ret;
 }
 
 int fopen(const char *path) {
@@ -364,38 +351,27 @@ int fopen(const char *path) {
         return -1;
     }
 
+    int ret = -1;
+
     const void *conn = connect(VFS_PORT, sizeof(vfs_command) + strsize(path));
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -2;
+    if (conn) {
+        vfs_command cmd = {
+            .command = VFS_OPEN,
+        };
+
+        if (write(conn, &cmd, sizeof(vfs_command)) == sizeof(vfs_command) &&
+            write(conn, path, strsize(path)) == strsize(path)) {
+
+            vfs_reply reply;
+            if (timed_read(conn, &reply, sizeof(vfs_reply), 100) == sizeof(vfs_reply)) {
+                ret = reply.ret;
+            }
+        }
+
+        close(conn);
     }
 
-    char cmd_buf[sizeof(vfs_command) + strsize(path)];
-    char reply_buf[sizeof(vfs_reply) + sizeof(int)];
-
-    vfs_command *cmd   = (void *) cmd_buf;
-    vfs_reply   *reply = (void *) reply_buf;
-
-    cmd->command = VFS_OPEN;
-
-    strcpy(cmd->buf, path);
-
-    int ret = write(conn, cmd_buf, sizeof(vfs_command) + strsize(path));
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs %d", ret);
-        goto closure;
-    }
-
-    ret = timed_read(conn, reply_buf, sizeof(vfs_reply), 100);
-    if (ret <= 0) {
-        LOG_ERR("failed to read vfs reply");
-        goto closure;
-    }
-
-    closure:
-    close(conn);
-
-    return (ret >= (int) sizeof(vfs_reply)) ? reply->ret : -3;
+    return ret;
 }
 
 int fread(int fd, char *buf, uint32_t buf_size) {
@@ -403,49 +379,40 @@ int fread(int fd, char *buf, uint32_t buf_size) {
         return -1;
     }
 
+    int ret = -1;
+
     const void *conn = connect(VFS_PORT, sizeof(vfs_command) + buf_size);
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -2;
-    }
+    if (conn) {
+        vfs_command cmd = {
+            .command = VFS_READ,
+        };
+        vfs_rw_req req = {
+            .fd = fd,
+            .size = buf_size,
+        };
+        if (write(conn, &cmd, sizeof(vfs_command)) == sizeof(vfs_command) &&
+            write(conn, &req, sizeof(vfs_rw_req)) == sizeof(vfs_rw_req)) {
 
-    char cmd_buf[sizeof(vfs_command) + sizeof(vfs_rw_req)];
+            vfs_reply reply;
+            if (timed_read(conn, &reply, sizeof(vfs_reply), 100) == sizeof(vfs_reply)) {
+                int offset = 0;
+                while (offset < reply.ret) {
+                    ret = timed_read(conn, buf + offset, buf_size - offset, 100);
+                    if (ret < 0) {
+                        break;
+                    }
 
-    vfs_command *cmd   = (void *) cmd_buf;
-    vfs_reply    reply = {0};
+                    offset += ret;
 
-    cmd->command = VFS_READ;
-
-    vfs_rw_req *req = (void *) (cmd + 1);
-
-    req->fd   = fd;
-    req->size = buf_size;
-
-    uint32_t offset = 0;
-
-    int ret = write(conn, cmd_buf, sizeof(vfs_command) + sizeof(vfs_rw_req));
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs");
-        goto closure;
-    }
-
-    ret = timed_read(conn, (char *) &reply, sizeof(vfs_reply), 100);
-    if (ret < (int) sizeof(vfs_reply) || reply.ret < 0) {
-        LOG_ERR("failed to read vfs reply");
-        goto closure;
-    }
-
-    while ((int) offset < reply.ret) {
-        ret = timed_read(conn, buf + offset, buf_size - offset, 100);
-        if (ret > 0) {
-            offset += ret;
+                    ret = offset;
+                }
+            }
         }
+
+        close(conn);
     }
 
-    closure:
-    close(conn);
-
-    return (ret < 0) ? ret : (int) offset;
+    return ret;
 }
 
 int fwrite(int fd, const char *buf, uint32_t buf_size) {
@@ -456,78 +423,63 @@ int fwrite(int fd, const char *buf, uint32_t buf_size) {
 }
 
 int fclose(int fd) {
-    const void *conn = connect(VFS_PORT, sizeof(vfs_command) + sizeof(vfs_fd_req));
-    if (!conn) {
-        LOG_ERR("failed to connect to vfs");
-        return -2;
+    int ret = -1;
+
+    const void *conn = connect(VFS_PORT, sizeof(vfs_reply) + sizeof(vfs_fd_req));
+    if (conn) {
+        vfs_command cmd = {
+            .command = VFS_CLOSE,
+        };
+        vfs_fd_req req = {
+            .fd = fd,
+        };
+
+        if (write(conn, &cmd, sizeof(vfs_command)) == sizeof(vfs_command) &&
+            write(conn, &req, sizeof(vfs_fd_req)) == sizeof(vfs_fd_req)) {
+
+            vfs_reply reply;
+            if (timed_read(conn, &reply, sizeof(vfs_reply), 100) == sizeof(vfs_reply)) {
+                ret = reply.ret;
+            }
+        }
+
+        close(conn);
     }
 
-    char cmd_buf[sizeof(vfs_command) + sizeof(vfs_fd_req)];
-    char reply_buf[sizeof(vfs_reply)];
-
-    vfs_command *cmd   = (void *) cmd_buf;
-    vfs_reply   *reply = (void *) reply_buf;
-
-    cmd->command = VFS_CLOSE;
-
-    vfs_fd_req *req = (void *) (cmd + 1);
-
-    req->fd = fd;
-
-    int ret = write(conn, cmd_buf, sizeof(vfs_command) + sizeof(vfs_fd_req));
-    if (ret < 0) {
-        LOG_ERR("failed to request vfs");
-        goto closure;
-    }
-
-    ret = timed_read(conn, (char *) reply, sizeof(vfs_reply), 100);
-    if (ret <= 0) {
-        LOG_ERR("failed to read vfs reply");
-        goto closure;
-    }
-
-    closure:
-    close(conn);
-
-    return (ret == (int) sizeof(vfs_reply)) ? reply->ret : -3;
+    return ret;
 }
 
 void vfs_loop(void) {
-    restart:
-
-    const void * client = NULL;
-    const void * connection = NULL;
-
-    fs_ifc *fs = NULL;
-
-    disk_ifc *disk = sd_spi_init(&cfg);
-
     file_desc *root = NULL;
+    fs_ifc *fs = NULL;
+    while (!root) {
+        disk_ifc *disk = sd_spi_init(&cfg);
+        if (disk) {
+            disk_stat stat;
+            uint8_t buf[512];
+            if (!disk->read(disk, 0, buf)) {
+                disk->get_stat(disk, &stat);
+                for (unsigned i = 0; i < MBR_PART_COUNT; ++i) {
+                    part_info info;
+                    if (mbr_get_part_info(buf, i, &info)) {
+                        continue;
+                    }
 
-    part_info info;
+                    fs = ext2_init(disk, info.start_sector);
+                    if (fs) {
+                        root = fs->mount(fs, "/");
+                    }
 
-    if (disk) {
-        disk_stat stat;
-        uint8_t buf[512];
-        if (!disk->read(disk, 0, buf)) {
-            disk->get_stat(disk, &stat);
-            for (unsigned i = 0; i < MBR_PART_COUNT; ++i) {
-                if (mbr_get_part_info(buf, i, &info)) {
-                    continue;
-                }
-
-                fs = ext2_init(disk, info.start_sector);
-                if (fs) {
-                    root = fs->mount(fs);
-                    break;
+                    if (root) {
+                        printf("\nrootfs mounted\nsize: %u MB\n", info.size_mb);
+                        fs_current_path_set(root->name);
+                        break;
+                    }
                 }
             }
         }
-    }
 
-    if (!root) {
         sleep(1000);
-        goto restart;
     }
 
     int ret = socket(VFS_PORT);
@@ -536,14 +488,10 @@ void vfs_loop(void) {
     open_fd = list_create();
     ASSERT(open_fd);
 
-    printf("\nrootfs mounted\nsize: %u MB\n", info.size_mb);
-
-    fs_current_path_set(root->name);
-
     while (1) {
         sleep(1);
 
-        client = listen(VFS_PORT);
+        const void *client = listen(VFS_PORT);
         if (client) {
             const void * conn = accept(VFS_PORT, client, VFS_REPL_BUFFER_SIZE);
             if (!conn) {
@@ -551,18 +499,16 @@ void vfs_loop(void) {
             }
         }
 
-        connection = select(VFS_PORT);
+        const void *connection = select(VFS_PORT);
         if (connection) {
-            char io_buffer[VFS_SOCK_BUFFER_SIZE];
-
             const void *connection_peer = peer(connection);
             if (!connection_peer) {
                 LOG_ERR("sock peer not found");
                 continue;
             }
 
-            int ret = timed_read(connection, io_buffer, VFS_SOCK_BUFFER_SIZE, 100);
-            if (ret > (int) sizeof(vfs_command)) {
+            char io_buffer[VFS_SOCK_BUFFER_SIZE];
+            if (timed_read(connection, io_buffer, VFS_SOCK_BUFFER_SIZE, 100) >= (int) sizeof(vfs_command)) {
                 vfs_command *command = (void *) io_buffer;
                 if (command->command < sizeof(handlers)) {
                     int ret = handlers[command->command](connection, command, root, fs);

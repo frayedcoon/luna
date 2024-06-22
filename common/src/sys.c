@@ -2,7 +2,7 @@
 #include "kernel/syscall.h"
 #include "common/log.h"
 
-int timed_read(const void *dest, char *data, uint32_t data_size, uint32_t ms) {
+int timed_read(const void *dest, void *data, uint32_t data_size, uint32_t ms) {
     int ret = -1;
 
     while (ms--) {

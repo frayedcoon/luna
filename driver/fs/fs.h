@@ -29,7 +29,7 @@ typedef struct dir_entry_t {
 } dir_entry;
 
 typedef struct fs_ifc_t {
-    file_desc* (*mount)(struct fs_ifc_t *ifc);
+    file_desc* (*mount)(struct fs_ifc_t *ifc, const char *root_path);
     int (*read)(struct fs_ifc_t *ifc, file_desc *fd, uint8_t *buf, uint32_t buf_size, uint32_t offset);
     int (*write)(struct fs_ifc_t *ifc, file_desc *fd, uint8_t *buf, uint32_t buf_size, uint32_t offset);
 } fs_ifc;

@@ -38,9 +38,9 @@ void *popen(const void *dest_thread, uint8_t *buffer, uint32_t buffer_size);
 const
 void *precv(void);
 
-int write(const void * dest, char *data, uint32_t data_size);
+int write(const void * dest, const void *data, uint32_t data_size);
 
-int read(const void * dest, char *data, uint32_t data_size);
+int read(const void * dest, void *data, uint32_t data_size);
 
 const
 void *peer(const void *dest);

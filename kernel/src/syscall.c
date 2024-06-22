@@ -139,11 +139,11 @@ void *precv(void) {
     return req.pipe;
 }
 
-int write(const void * dest, char *data, uint32_t data_size) {
+int write(const void * dest, const void *data, uint32_t data_size) {
     rw_request req = {
         .result    = 0,
         .dest      = dest,
-        .data      = data,
+        .data      = (void *) data,
         .data_size = data_size,
     };
 
@@ -152,11 +152,11 @@ int write(const void * dest, char *data, uint32_t data_size) {
     return req.result;
 }
 
-int read(const void * dest, char *data, uint32_t data_size) {
+int read(const void * dest, void *data, uint32_t data_size) {
     rw_request req = {
         .result    = 0,
         .dest      = dest,
-        .data      = data,
+        .data      = (void *) data,
         .data_size = data_size,
     };
 

@@ -477,7 +477,7 @@ static list_ifc *dir_attach_children(ext2_ctx *ctx, inode *ind, file_desc *paren
     return list;
 }
 
-static file_desc *ext2_mount(fs_ifc *ifc) {
+static file_desc *ext2_mount(fs_ifc *ifc, const char *root_path) {
     ext2_ctx *ctx = (ext2_ctx *) ifc;
     if (!ctx) {
         return NULL;
@@ -488,7 +488,7 @@ static file_desc *ext2_mount(fs_ifc *ifc) {
         return NULL;
     }
 
-    uint32_t name_size  = strsize("/");
+    uint32_t name_size  = strsize(root_path);
     uint32_t total_size = sizeof(file_desc) + name_size + sizeof(ext2_desc_priv_data);
 
     file_desc *root = malloc(total_size);
@@ -500,7 +500,7 @@ static file_desc *ext2_mount(fs_ifc *ifc) {
 
     priv->inode = ROOT_INODE;
 
-    strcpy(root->name, "/");
+    strcpy(root->name, root_path);
     root->desc_size = total_size;
     root->type      = F_TYPE_DIR;
     root->size      = 0;
