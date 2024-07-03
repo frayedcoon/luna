@@ -12,6 +12,8 @@ SECTIONS
     .text : {
         *(.vectors);
         . = ALIGN(1024);
+        *(.got)
+        *(.got*)
         *(.text);
         *(.text*)
         . = ALIGN(4);
@@ -20,6 +22,8 @@ SECTIONS
         . = ALIGN(4);
         INCLUDE scripts/ld/section_common.ld
     } > flash
+
+    . = ALIGN(4);
 
     INIT_DATA_VALUES = LOADADDR(.data);
 

@@ -17,7 +17,7 @@ test : flush
 
 .PHONY : flush
 flush : $(PROJECT_BINARY)
-	@$(FLASH_TOOL) write $(PROJECT_BINARY) $(FLASH_ADDR) &> /dev/null
+	@$(FLASH_TOOL) $(PROJECT_BINARY) $(FLASH_ADDR) &> /dev/null
 
 .PHONY : clean
 clean:

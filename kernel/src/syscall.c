@@ -1,7 +1,6 @@
 #include "kernel/syscall.h"
 #include "kernel/thread.h"
 #include "common/sys.h"
-#include "lib/string.h"
 
 #define CONNECT_TIMEOUT_MS 500
 

@@ -12,6 +12,8 @@ SECTIONS
     .text : {
         *(.vectors);
         . = ALIGN(1024);
+        *(.got)
+        *(.got*)
         *(.text);
         *(.text*)
         . = ALIGN(4);

@@ -1,4 +1,4 @@
-MODULE      := srv
+MODULE      := etc
 
 MODULE_SRC  := src/*.c
 

@@ -29,7 +29,7 @@ LD_SCRIPT               := $(SCRIPT_DIR)/ld/$(TARGET).ld
 CC_FLAGS                := -mcpu=cortex-$(CORE) -mthumb -g -ffreestanding \
                            -std=gnu99 -fomit-frame-pointer -Werror \
                            -Wall -Wextra -mfloat-abi=hard -mapcs-frame \
-                           -mlittle-endian
+                           -mlittle-endian -fPIC
 LD_FLAGS                := -T $(LD_SCRIPT) --cref \
                            -Map $(PROJECT_MAP)
 
