@@ -1,5 +1,4 @@
 #include "lib/list.h"
-#include "kernel/memory.h"
 #include "common/utils.h"
 
 typedef struct mutable_list_node_t {
@@ -10,6 +9,8 @@ typedef struct mutable_list_node_t {
 
 typedef struct list_ctx_t {
     list_ifc                 ifc;
+    list_allocator           allocator;
+    list_deallocator         deallocator;
 
     mutable_list_node       *front;
     mutable_list_node       *back;
@@ -55,7 +56,7 @@ list_node *list_insert_before(list_ifc *ifc, const list_node *node, void *ptr) {
     mutable_list_node *aft = (node) ?
                              ((mutable_list_node*) node)      : ctx->front;
 
-    tmp = cell_alloc(sizeof(mutable_list_node));
+    tmp = ctx->allocator(sizeof(mutable_list_node));
     if (!tmp) {
         return NULL;
     }
@@ -105,7 +106,7 @@ list_node *list_insert_after(list_ifc *ifc, const list_node *node, void *ptr) {
     mutable_list_node *aft = (node) ?
                              ((mutable_list_node*) node->nxt) : NULL;
 
-    tmp = cell_alloc(sizeof(mutable_list_node));
+    tmp = ctx->allocator(sizeof(mutable_list_node));
     if (!tmp) {
         return NULL;
     }
@@ -170,7 +171,7 @@ void list_delete(list_ifc *ifc, const list_node *node, list_ctx_dstor dstor) {
         dstor(node->ptr);
     }
 
-    cell_free((void*) node);
+    ctx->deallocator((void*) node);
 }
 
 static
@@ -209,7 +210,7 @@ void list_destroy(list_ifc *ifc, list_ctx_dstor dstor) {
         tmp = (list_node*) ctx->front;
     }
 
-    cell_free(ctx);
+    ctx->deallocator(ctx);
 }
 
 static const
@@ -223,14 +224,21 @@ list_ifc list_ops = {
     .destroy       = list_destroy,
 };
 
-list_ifc *list_create(void) {
-    list_ctx *ctx = cell_alloc(sizeof(list_ctx));
+list_ifc *list_create(list_allocator allocator, list_deallocator deallocator) {
+    if (!allocator || !deallocator) {
+        return NULL;
+    }
+
+    list_ctx *ctx = allocator(sizeof(list_ctx));
     if (!ctx) {
         return NULL;
     }
 
     memset(ctx, 0, sizeof(list_ctx));
     memcpy(&ctx->ifc, &list_ops, sizeof(list_ifc));
+
+    ctx->allocator   = allocator;
+    ctx->deallocator = deallocator;
 
     return &ctx->ifc;
 }

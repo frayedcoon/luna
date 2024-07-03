@@ -1,7 +1,7 @@
 #include "app/terminal.h"
 #include "lib/string.h"
 #include "kernel/thread.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "lib/list.h"
 #include "platform/clock.h"
 

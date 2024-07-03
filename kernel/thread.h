@@ -76,8 +76,6 @@ void *thread_create(void (*task)(), const char *name, uint8_t priority);
 
 void thread_delay(int32_t msec);
 
-void thread_yield(void);
-
 void thread_suspend(const thread_ctx *thread, const void *wait_for);
 
 void thread_signal(const void *object);

@@ -2,7 +2,7 @@
 #include "driver/dht.h"
 #include "target/cfg.h"
 #include "kernel/thread.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "platform/clock.h"
 #include "platform/timer.h"
 #include "common/log.h"

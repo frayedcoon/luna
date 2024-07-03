@@ -16,11 +16,11 @@ void signal(const void *object);
 
 void sleep(int msec);
 
-void *malloc(uint32_t size);
+void *malloc(uint16_t size);
 
-void *zmalloc(uint32_t size);
+void *zmalloc(uint16_t size);
 
-void *realloc(void *ptr, uint32_t size);
+void *realloc(void *ptr, uint16_t size);
 
 void free(void *ptr);
 

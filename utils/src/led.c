@@ -1,6 +1,6 @@
 #include "app/terminal.h"
 #include "lib/string.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "common/sys.h"
 #include "common/log.h"
 

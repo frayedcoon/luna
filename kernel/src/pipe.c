@@ -29,7 +29,7 @@ int pipes_init(void) {
         return -1;
     }
 
-    pipe_list = list_create();
+    pipe_list = list_create(cell_alloc, cell_free);
     if (!pipe_list) {
         return -2;
     }

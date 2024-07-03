@@ -10,7 +10,10 @@ typedef struct list_node_t {
     const struct list_node_t       *nxt;
 } list_node;
 
-typedef void (*list_ctx_dstor)  (void *data_ptr);
+typedef void (*list_ctx_dstor)   (void *data_ptr);
+
+typedef void* (*list_allocator)  (uint16_t size);
+typedef void (*list_deallocator) (void *data_ptr);
 
 typedef struct list_ifc_t {
     const
@@ -32,6 +35,6 @@ typedef struct list_ifc_t {
     void       (*destroy)       (struct list_ifc_t *ifc, list_ctx_dstor dstor);
 } list_ifc;
 
-list_ifc *list_create(void);
+list_ifc *list_create(list_allocator allocator, list_deallocator deallocator);
 
 #endif

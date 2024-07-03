@@ -2,7 +2,7 @@
 #include "arch/core.h"
 #include "arch/nvic.h"
 #include "kernel/memory.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 #define OFFSET_CR1   0
 #define OFFSET_CR2   1

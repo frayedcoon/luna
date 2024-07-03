@@ -6,7 +6,7 @@ include scripts/make/init.mk
 .PHONY : all
 all : $(PROJECT_BINARY)
 
-$(PROJECT_BINARY) : $(GLOBAL_OBJS)
+$(PROJECT_BINARY) : $(GLOBAL_OBJS) $(LIBS)
 	@echo Linking $(PROJECT_BINARY)
 	@$(LD) $(GLOBAL_OBJS) $(LD_FLAGS) -o $(PROJECT_ELF)
 	@$(OC) -O binary $(PROJECT_ELF) $(PROJECT_BINARY)

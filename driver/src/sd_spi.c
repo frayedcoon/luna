@@ -1,6 +1,6 @@
 #include "driver/sd_spi.h"
 #include "target/cfg.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "platform/clock.h"
 
 #define CMD_RECV_TRY_CNT   0x800

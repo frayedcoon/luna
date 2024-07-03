@@ -1,5 +1,5 @@
 #include "lib/parser.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 static
 char *get_arg(const char *buffer, char *begin,
@@ -54,7 +54,7 @@ char *get_arg(const char *buffer, char *begin,
 }
 
 list_ifc *parse_buffer(const char* buffer, char delimiter, int wrapping) {
-    list_ifc *lst = list_create();
+    list_ifc *lst = list_create(malloc, free);
     if (!lst) {
         return NULL;
     }

@@ -2,7 +2,7 @@
 #include "arch/core.h"
 #include "arch/nvic.h"
 #include "kernel/memory.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 typedef struct usart_regs_t {
     uint32_t sr;

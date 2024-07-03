@@ -5,8 +5,6 @@
 
 #include "platform/usart.h"
 
-#include "kernel/ted.h"
-
 #include "lib/string.h"
 
 #include "kernel/thread.h"

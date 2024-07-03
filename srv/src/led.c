@@ -3,7 +3,7 @@
 #include "target/cfg.h"
 #include "common/def.h"
 #include "lib/string.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "kernel/thread.h"
 #include "common/log.h"
 #include "common/sys.h"

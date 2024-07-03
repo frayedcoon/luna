@@ -1,8 +1,8 @@
 #ifndef ARCH_SVC_H
 #define ARCH_SVC_H
 
+#include "common/common.h"
 #include "common/def.h"
-#include "kernel/thread.h"
 
 /**
  * supervisor call codes enumeration
@@ -96,6 +96,10 @@ typedef struct memory_request_t {
      */
     void                  *ptr;
 } memory_request;
+
+typedef struct thread_sleep_request_t {
+    uint32_t               msec;
+} thread_sleep_request;
 
 typedef struct thread_wait_request_t {
     const void            *object;
@@ -223,15 +227,6 @@ typedef struct socket_reply_request_t {
     uint8_t                accept;
 } socket_reply_request;
 
-
-/**
- * @brief      SV Call exception handler. Performs swith to user mode
- *
- * UIBC
- *
- */
-void sv_call_handler(uint32_t  svc_code, void *svc_arg);
-
 /**
  * @brief      performs SV Call with given parameter
  *
@@ -241,7 +236,22 @@ void sv_call_handler(uint32_t  svc_code, void *svc_arg);
  *
  * @return     sv call error code
  */
-void sv_call(sv_code svc_number, void *arg);
+inline __attribute__((always_inline)) void sv_call(sv_code svc_number, void *arg) {
+    register uint32_t svc_ret  asm ("r0") = (uint32_t) svc_number;
+    register void *svc_arg  asm ("r1") = arg;
+    asm volatile (
+        "svc 0                               \n\t"
+        : [svc] "=r" (svc_ret), [sva] "=r" (svc_arg)
+    );
+}
+
+/**
+ * @brief      SV Call exception handler. Performs swith to user mode
+ *
+ * UIBC
+ *
+ */
+void sv_call_handler(uint32_t  svc_code, void *svc_arg);
 
 /**
  * @brief      pends execution of pend_sv_handler

@@ -5,6 +5,7 @@
 #include "kernel/pipe.h"
 #include "kernel/memory.h"
 #include "kernel/socket.h"
+#include "kernel/thread.h"
 
 extern core_context  *core_context_cur;
 extern core_context  *core_context_new;
@@ -15,6 +16,28 @@ extern core_context   idler_core_context;
 extern core_context   dummy_core_context;
 
 volatile int context_switch_scheduled = 0;
+
+/**
+ * @brief      schedule and switch new context (if needed)
+ *
+ * @param[in]  arg         not used
+ */
+void sv_schedule_routine(void *arg) {
+    (void) arg;
+    core_context *old_ctx = NULL;
+    core_context *new_ctx = NULL;
+
+    if (!context_switch_scheduled) {
+        context_switch_scheduled = 1;
+
+        scheduler->schedule(&old_ctx, &new_ctx);
+
+        core_context_cur = old_ctx ? old_ctx : &dummy_core_context;
+        core_context_new = new_ctx ? new_ctx : &idler_core_context;
+
+        pend_sv_call();
+    }
+}
 
 /**
  * @brief      switch to user mode
@@ -58,26 +81,16 @@ void sv_memory(void *arg) {
     }
 }
 
-/**
- * @brief      schedule and switch new context (if needed)
- *
- * @param[in]  arg         not used
- */
-void sv_schedule_routine(void *arg) {
-    (void) arg;
-    core_context *old_ctx = NULL;
-    core_context *new_ctx = NULL;
-
-    if (!context_switch_scheduled) {
-        context_switch_scheduled = 1;
-
-        scheduler->schedule(&old_ctx, &new_ctx);
-
-        core_context_cur = old_ctx ? old_ctx : &dummy_core_context;
-        core_context_new = new_ctx ? new_ctx : &idler_core_context;
-
-        pend_sv_call();
+static
+void sv_sleep(void *arg) {
+    thread_sleep_request *req = (thread_sleep_request *) arg;
+    if (!req) {
+        return;
     }
+
+    thread_delay(req->msec);
+
+    sv_schedule_routine(NULL);
 }
 
 static
@@ -278,7 +291,7 @@ void sv_signal(void *arg) {
 void (*svc_handlers[])(void*) = {
     sv_user_mode,
     sv_memory,
-    sv_schedule_routine,
+    sv_sleep,
     sv_thread_create,
     sv_thread_get,
     sv_thread_destroy,
@@ -301,15 +314,6 @@ void sv_call_handler(uint32_t svc_code, void *svc_arg) {
     if (svc_code < countof(svc_handlers)) {
         svc_handlers[svc_code](svc_arg);
     }
-}
-
-void sv_call(sv_code svc_number, void *arg) {
-    register uint32_t svc_ret  asm ("r0") = (uint32_t) svc_number;
-    register void *svc_arg  asm ("r1") = arg;
-    asm volatile (
-        "svc 0                               \n\t"
-        : [svc] "=r" (svc_ret), [sva] "=r" (svc_arg)
-    );
 }
 
 void pend_sv_call(void) {

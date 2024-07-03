@@ -1,6 +1,6 @@
 #include "kernel/mutex.h"
 #include "arch/mutex.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 void mutex_lock(struct mutex_t *handle) {
     arch_mutex_lock(&handle->handle, wait, handle);

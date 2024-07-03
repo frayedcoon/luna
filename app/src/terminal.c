@@ -1,7 +1,7 @@
 #include "app/terminal.h"
 #include "target/cfg.h"
 #include "common/log.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "lib/parser.h"
 #include "fs/fs.h"
 

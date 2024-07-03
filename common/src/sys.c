@@ -1,5 +1,5 @@
 #include "common/sys.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "common/log.h"
 
 int timed_read(const void *dest, void *data, uint32_t data_size, uint32_t ms) {
@@ -15,16 +15,4 @@ int timed_read(const void *dest, void *data, uint32_t data_size, uint32_t ms) {
     }
 
     return ret;
-}
-
-void *expect_answer(void * volatile * ptr, void *init_value, uint32_t timeout) {
-    while (timeout--) {
-        if (*ptr != init_value) {
-            return (void *) *ptr;
-        }
-
-        sleep(1);
-    }
-
-    return NULL;
 }

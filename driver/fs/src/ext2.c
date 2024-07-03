@@ -1,5 +1,5 @@
 #include "fs/ext2.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "lib/string.h"
 
 #define SB_OFFSET           0x400
@@ -397,7 +397,7 @@ static list_ifc *dir_attach_children(ext2_ctx *ctx, inode *ind, file_desc *paren
 
     while (displacement < ctx->block_size) {
         if (!list) {
-            list = list_create();
+            list = list_create(malloc, free);
             if (!list) {
                 goto end;
             }

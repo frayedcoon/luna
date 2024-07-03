@@ -1,5 +1,5 @@
 #include "app/terminal.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "lib/string.h"
 
 static int sleep_cmd_handler(list_ifc *args) {

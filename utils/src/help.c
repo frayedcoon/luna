@@ -3,7 +3,7 @@
 #include "lib/string.h"
 #include "common/log.h"
 #include "common/sys.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "kernel/mutex.h"
 #include "platform/clock.h"
 #include "platform/spi.h"

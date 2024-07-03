@@ -1,7 +1,7 @@
 #include "fs/fs.h"
 #include "lib/string.h"
 #include "lib/parser.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 #define DEFAULT_PATH "/"
 

@@ -47,7 +47,7 @@ int sockets_init(void) {
         return 0;
     }
 
-    socket_list = list_create();
+    socket_list = list_create(cell_alloc, cell_free);
     if (!socket_list) {
         return -1;
     }
@@ -179,7 +179,7 @@ int socket_create(const void *owner, uint8_t port) {
 
     memset(ctx, 0, sizeof(socket_ctx));
 
-    ctx->connections = list_create();
+    ctx->connections = list_create(cell_alloc, cell_free);
     if (!ctx->connections) {
         goto error;
     }

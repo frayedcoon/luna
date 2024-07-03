@@ -485,7 +485,7 @@ void vfs_loop(void) {
     int ret = socket(VFS_PORT);
     ASSERT(!ret);
 
-    open_fd = list_create();
+    open_fd = list_create(malloc, free);
     ASSERT(open_fd);
 
     while (1) {

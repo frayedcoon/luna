@@ -3,7 +3,7 @@
 #include "lib/string.h"
 #include "common/log.h"
 #include "common/sys.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "srv/vfs.h"
 
 #define IO_BUF_SIZE 32

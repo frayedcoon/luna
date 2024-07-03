@@ -1,5 +1,5 @@
 #include "platform/spi.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 
 typedef struct spi_regs_t {
     uint32_t cr1;

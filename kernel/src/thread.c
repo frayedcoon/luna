@@ -173,7 +173,7 @@ void scheduler_destroy(void) {
 }
 
 int scheduler_init(void) {
-    sched_ctx.threads = list_create();
+    sched_ctx.threads = list_create(cell_alloc, cell_free);
     if (!sched_ctx.threads) {
         return -1;
     }
@@ -276,10 +276,6 @@ void thread_delay(int32_t msec) {
     if (thread) {
         thread->data->wakeup = clock_get() + msec;
     }
-}
-
-void thread_yield(void) {
-    thread_delay(0);
 }
 
 void thread_suspend(const thread_ctx *thread, const void *wait_for) {

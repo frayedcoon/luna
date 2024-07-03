@@ -19,6 +19,8 @@ TARGET_DIR               := target/$(TARGET)
 GLOBAL_SRCS              :=
 GLOBAL_OBJS              :=
 
+LIBS                     :=
+
 GLOBAL_INC               := -I.
 
 include $(TARGET_DIR)/target.mk
@@ -30,6 +32,7 @@ CC_FLAGS                := -mcpu=cortex-$(CORE) -mthumb -g -ffreestanding \
                            -std=gnu99 -fomit-frame-pointer -Werror \
                            -Wall -Wextra -mfloat-abi=hard -mapcs-frame \
                            -mlittle-endian -fPIC
+LIB_CC_FLAGS            := -shared
 LD_FLAGS                := -T $(LD_SCRIPT) --cref \
                            -Map $(PROJECT_MAP)
 

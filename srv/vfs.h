@@ -2,7 +2,7 @@
 #define SRV_VFS_H
 
 #include "common/def.h"
-#include "kernel/syscall.h"
+#include "lib/syscall.h"
 #include "lib/string.h"
 #include "fs/fs.h"
 

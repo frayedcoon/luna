@@ -1,17 +1,32 @@
-#include "kernel/syscall.h"
-#include "kernel/thread.h"
+#include "lib/syscall.h"
 #include "common/sys.h"
 
 #define CONNECT_TIMEOUT_MS 500
 
+static void *expect_answer(void * volatile * ptr, void *init_value, uint32_t timeout) {
+    while (timeout--) {
+        if (*ptr != init_value) {
+            return (void *) *ptr;
+        }
+
+        sleep(1);
+    }
+
+    return NULL;
+}
+
 void sleep(int msec) {
-    thread_delay(msec);
-    sv_call(SVC_RESCHEDULE, NULL);
+    thread_sleep_request req = {
+        .msec = msec,
+    };
+
+    sv_call(SVC_RESCHEDULE, &req);
 }
 
 void yield(void) {
-    thread_yield();
-    sv_call(SVC_RESCHEDULE, NULL);
+    thread_sleep_request req = {0};
+
+    sv_call(SVC_RESCHEDULE, &req);
 }
 
 void wait(const void *object) {
@@ -30,7 +45,7 @@ void signal(const void * object) {
     sv_call(SVC_WAKEUP, &req);
 }
 
-void *malloc(uint32_t size) {
+void *malloc(uint16_t size) {
     memory_request req = {
         .size       = size,
         .ptr        = NULL,
@@ -41,7 +56,7 @@ void *malloc(uint32_t size) {
     return req.ptr;
 }
 
-void *zmalloc(uint32_t size) {
+void *zmalloc(uint16_t size) {
     memory_request req = {
         .size       = size,
         .ptr        = NULL,
@@ -56,7 +71,7 @@ void *zmalloc(uint32_t size) {
     return req.ptr;
 }
 
-void *realloc(void *ptr, uint32_t size) {
+void *realloc(void *ptr, uint16_t size) {
     memory_request req = {
         .size       = size,
         .ptr        = ptr,
